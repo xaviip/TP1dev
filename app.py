@@ -27,7 +27,8 @@ def handle_general_exception(err):
 def home():
     return jsonify({"mensaje": "Bienvenido a la API de gestión de partidos de fútbol"}), 200
 
-
+#Pre: recibe un JSON con los campos 'nombre' y 'email' no vacíos
+#Post: retorna un JSON con el mensaje de éxito si son correctos el ID del usuario creado, su nombre y email, o un error si faltan datos
 @app.route('/usuarios', methods=['POST'])
 def crear_usuario():
     datos = request.get_json()
@@ -43,7 +44,8 @@ def crear_usuario():
         "email": datos['email']
     }), 201
 
-
+#Pre:-
+#Post: devuelve una lista de usuarios y links de navegación HATEOAS
 @app.route('/usuarios', methods=['GET'])
 def listar_usuarios():
     limit = int(request.args.get('_limit', 10))
@@ -67,7 +69,8 @@ def listar_usuarios():
         "_links": _links
     }), 200
 
-
+#Pre:se le pasa por parámetro un ID
+#Post: devuelve 200 si obtiene el usuario, 404 si no lo encuentra
 @app.route('/usuarios/<int:id>', methods=['GET'])
 def obtener_usuario(id):
     usuario = obtener_usuario_id(id)
@@ -75,7 +78,8 @@ def obtener_usuario(id):
         return jsonify(usuario), 200
     return jsonify({"error": "Usuario no encontrado"}), 404
 
-
+#Pre:se le pasa por parámetro un ID y un JSON con los campos 'nombre' y 'email' no vacíos
+#Post: actualiza el usuario con el ID dado, retorna 204 si se actualizó
 @app.route('/usuarios/<int:id>', methods=['PUT'])
 def actualizar_usuario(id):
     datos = request.get_json()
@@ -87,14 +91,16 @@ def actualizar_usuario(id):
         return '', 204
     return jsonify({"error": "Usuario no encontrado"}), 404
 
-
+#Pre: se le pasa por parámetro un ID
+#Post: elimina el usuario con el ID dado, retorna 204 si se eliminó,
 @app.route('/usuarios/<int:id>', methods=['DELETE'])
 def eliminar_usuario(id):
     if eliminar_usuario_db(id):
         return '', 204
     return jsonify({"error": "Usuario no encontrado"}), 404
 
-
+#Pre: se le pasa por parámetro un ID y un JSON con los goles del equipo local y visitante
+#Post: actualiza el resultado del partido retornando 204 si se actualizó, 404 si no se encontró, o 400 si faltan datos o son inválidos
 @app.route('/partidos/<int:id>/resultado', methods=['PUT'])
 def cargar_resultado(id):
     datos = request.get_json()
@@ -105,7 +111,7 @@ def cargar_resultado(id):
     actualizado = actualizar_resultado_partido(id, datos['local'], datos['visitante'])
 
     if actualizado:
-        return jsonify({"mensaje": "Resultado actualizado correctamente"}), 200
+        return jsonify({"mensaje": "Resultado actualizado correctamente"}), 204
     return jsonify({"error": "Partido no encontrado"}), 404
 
 

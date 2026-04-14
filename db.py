@@ -9,6 +9,8 @@ def get_connection():
         database="fixture",
     )
 
+#Pre: nombre y email no pueden ser strings vacíos
+#Post: inserta el usuario en la BD y retorna un diccionario con sus datos e ID
 def guardar_usuario(nombre, email):
     conexion = get_connection()
     try:
@@ -21,6 +23,8 @@ def guardar_usuario(nombre, email):
         cursor.close()
         conexion.close()
 
+#Pre: para la paginación, limit > 0 y offset >= 0
+#Post: retorna una lista de usuarios limitada por los parámetros
 def obtener_usuarios_db(limit, offset):
     conexion = get_connection()
     try:
@@ -38,6 +42,8 @@ def obtener_usuarios_db(limit, offset):
         cursor.close()
         conexion.close()
 
+#Pre: id_usuario debe ser un entero
+#Post: retorna True si se eliminó el registro, False en caso contrario
 def obtener_usuario_id(id_usuario):
     conexion = get_connection()
     try:
@@ -49,6 +55,8 @@ def obtener_usuario_id(id_usuario):
         cursor.close()
         conexion.close()
 
+#Pre: id_usuario debe ser un entero, nombre y email no pueden ser strings vacíos
+#Post: actualiza el usuario con el ID dado, retorna True si se actualizó, False caso contrario
 def reemplazar_usuario(id_usuario, nombre, email):
     conexion = get_connection()
     try:
@@ -61,6 +69,8 @@ def reemplazar_usuario(id_usuario, nombre, email):
         cursor.close()
         conexion.close()
 
+#Pre: id_usuario debe ser un entero
+#Post: elimina el usuario con el ID dado, retorna True si se eliminó, False caso contrario
 def eliminar_usuario_db(id_usuario):
     conexion = get_connection()
     try:
@@ -73,6 +83,8 @@ def eliminar_usuario_db(id_usuario):
         cursor.close()
         conexion.close()
 
+#Pre: id_partido debe ser un entero, goles_local y goles_visitante deben ser enteros no negativos
+#Post: actualiza el resultado del partido con el ID dado, retorna True si se actualizó, False caso contrario
 def actualizar_resultado_partido(id_partido, goles_local, goles_visitante):
     conexion = get_connection()
     try:
