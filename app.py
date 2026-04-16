@@ -6,7 +6,12 @@ from db import (
     obtener_usuario_id,
     reemplazar_usuario,
     eliminar_usuario_db,
-    actualizar_resultado_partido
+    guardar_partido,
+    obtener_partidos_db,
+    obtener_partido_id_db,
+    actualizar_partido_db,
+    eliminar_partido_db,
+    actualizar_resultado_db
 )
 
 app = Flask(__name__)
@@ -99,18 +104,105 @@ def eliminar_usuario(id):
         return '', 204
     return jsonify({"error": "Usuario no encontrado"}), 404
 
-#Pre: se le pasa por parámetro un ID y un JSON con los goles del equipo local y visitante
-#Post: actualiza el resultado del partido retornando 204 si se actualizó, 404 si no se encontró, o 400 si faltan datos o son inválidos
+# Pre: - (Recibe parámetros opcionales _limit y _offset por URL)
+# Post: devuelve una lista paginada de partidos y links de navegación HATEOAS
+@app.route('/partidos', methods=['GET'])
+def listar_partidos():
+    limit = int(request.args.get('_limit', 10))
+    offset = int(request.args.get('_offset', 0))
+
+    partidos, total = obtener_partidos_db(limit, offset)
+
+    base_url = request.base_url
+    last_offset = max(0, ((total - 1) // limit) * limit) if total > 0 else 0
+
+    _links = {
+        "_first": f"{base_url}?_limit={limit}&_offset=0",
+        "_last": f"{base_url}?_limit={limit}&_offset={last_offset}",
+        "_prev": f"{base_url}?_limit={limit}&_offset={max(0, offset - limit)}" if offset > 0 else None,
+        "_next": f"{base_url}?_limit={limit}&_offset={offset + limit}" if (offset + limit) < total else None
+    }
+
+    return jsonify({
+        "data": partidos,
+        "total": total,
+        "_links": _links
+    }), 200
+
+
+@app.route('/partidos', methods=['POST'])
+def crear_partido():
+    datos = request.get_json()
+    campos = ['equipo_local', 'equipo_visitante', 'fecha', 'fase']
+
+    if not datos or any(not datos.get(c) for c in campos):
+        return jsonify({"error": "Faltan completar datos obligatorios"}), 400
+
+    id_creado = guardar_partido(datos['equipo_local'], datos['equipo_visitante'], datos['fecha'], datos['fase'])
+    return jsonify({"mensaje": "Partido creado correctamente", "id": id_creado}), 201
+
+
+@app.route('/partidos', methods=['GET'])
+def listar_partidos():
+    limit_str = request.args.get('_limit', '10')
+    offset_str = request.args.get('_offset', '0')
+
+    if not limit_str.isdigit() or not offset_str.isdigit():
+        return jsonify({"error": "Los parámetros _limit y _offset deben ser números enteros"}), 400
+
+    limit, offset = int(limit_str), int(offset_str)
+    if limit <= 0: return jsonify({"error": "_limit debe ser mayor a 0"}), 400
+
+    partidos, total = obtener_partidos_db(limit, offset)
+
+    base_url = request.base_url
+    last_off = max(0, ((total - 1) // limit) * limit) if total > 0 else 0
+    _links = {
+        "_first": f"{base_url}?_limit={limit}&_offset=0",
+        "_last": f"{base_url}?_limit={limit}&_offset={last_off}",
+        "_prev": f"{base_url}?_limit={limit}&_offset={max(0, offset - limit)}" if offset > 0 else None,
+        "_next": f"{base_url}?_limit={limit}&_offset={offset + limit}" if (offset + limit) < total else None
+    }
+
+    return jsonify({"data": partidos, "total": total, "_links": _links}), 200
+
+
+@app.route('/partidos/<int:id>', methods=['GET'])
+def obtener_partido(id):
+    partido = obtener_partido_id_db(id)
+    if not partido:
+        return jsonify({"error": "Partido no encontrado"}), 404
+    return jsonify(partido), 200
+
+
+@app.route('/partidos/<int:id>', methods=['PUT'])
+def actualizar_partido(id):
+    datos = request.get_json()
+    campos = ['equipo_local', 'equipo_visitante', 'fecha', 'fase']
+
+    if not datos or any(not datos.get(c) for c in campos):
+        return jsonify({"error": "Datos incompletos para actualizar"}), 400
+
+    if actualizar_partido_db(id, datos['equipo_local'], datos['equipo_visitante'], datos['fecha'], datos['fase']):
+        return '', 204
+    return jsonify({"error": "Partido no encontrado"}), 404
+
+
+@app.route('/partidos/<int:id>', methods=['DELETE'])
+def borrar_partido(id):
+    if eliminar_partido_db(id):
+        return '', 204
+    return jsonify({"error": "Partido no encontrado"}), 404
+
+#Pre: se le pasa por parámetro un ID y un JSON con los goles del equipo local y visitante.
+#Post: actualiza el resultado del partido retornando 204 si se actualizó, 404 si no se encontró, o 400 si faltan datos o son inválidos.
 @app.route('/partidos/<int:id>/resultado', methods=['PUT'])
 def cargar_resultado(id):
     datos = request.get_json()
-
     if not datos or 'local' not in datos or 'visitante' not in datos:
-        return jsonify({"error": "Faltan los goles del equipo local o visitante"}), 400
+        return jsonify({"error": "Se requieren campos 'local' y 'visitante'"}), 400
 
-    actualizado = actualizar_resultado_partido(id, datos['local'], datos['visitante'])
-
-    if actualizado:
+    if actualizar_resultado_db(id, datos['local'], datos['visitante']):
         return jsonify({"mensaje": "Resultado actualizado correctamente"}), 204
     return jsonify({"error": "Partido no encontrado"}), 404
 
