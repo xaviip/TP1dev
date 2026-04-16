@@ -83,16 +83,134 @@ def eliminar_usuario_db(id_usuario):
         cursor.close()
         conexion.close()
 
-#Pre: id_partido debe ser un entero, goles_local y goles_visitante deben ser enteros no negativos
-#Post: actualiza el resultado del partido con el ID dado, retorna True si se actualizó, False caso contrario
-def actualizar_resultado_partido(id_partido, goles_local, goles_visitante):
+
+def guardar_partido(local, visitante, fecha, fase):
     conexion = get_connection()
     try:
         cursor = conexion.cursor()
-        query = "UPDATE partidos SET goles_local = %s, goles_visitante = %s WHERE id = %s"
-        cursor.execute(query, (goles_local, goles_visitante, id_partido))
+        query = "INSERT INTO partidos (equipo_local, equipo_visitante, fecha, fase) VALUES (%s, %s, %s, %s)"
+        cursor.execute(query, (local, visitante, fecha, fase))
+        conexion.commit()
+        return cursor.lastrowid
+    finally:
+        cursor.close()
+        conexion.close()
+
+def existe_partido(local, visitante):
+    conexion = get_connection()
+    try:
+        cursor = conexion.cursor(buffered=True)
+        query = """
+            SELECT id FROM partidos 
+            WHERE equipo_local = %s AND equipo_visitante = %s
+            LIMIT 1
+        """
+        cursor.execute(query, (local, visitante))
+        return cursor.fetchone() is not None
+    finally:
+        cursor.close()
+        conexion.close()
+
+
+def obtener_partidos_db(limit, offset, fase=None, equipo=None, fecha=None):
+    conexion = get_connection()
+    try:
+        cursor = conexion.cursor(dictionary=True)
+
+        query_base = "SELECT id, equipo_local, equipo_visitante, fecha, fase, goles_local, goles_visitante FROM partidos"
+        count_base = "SELECT COUNT(*) as total FROM partidos"
+
+        condiciones = []
+        valores = []
+
+        if fase:
+            condiciones.append("fase = %s")
+            valores.append(fase)
+
+        if equipo:
+            condiciones.append("(equipo_local = %s OR equipo_visitante = %s)")
+            valores.extend([equipo, equipo])
+
+        if fecha:
+            condiciones.append("DATE(fecha) = %s")
+            valores.append(fecha)
+
+        if condiciones:
+            where_clause = " WHERE " + " AND ".join(condiciones)
+            query_base += where_clause
+            count_base += where_clause
+
+        cursor.execute(count_base, tuple(valores))
+        total = cursor.fetchone()['total']
+
+        query_final = query_base + " LIMIT %s OFFSET %s"
+        valores_final = valores + [limit, offset]
+
+        cursor.execute(query_final, tuple(valores_final))
+        partidos = cursor.fetchall()
+
+        return partidos, total
+    finally:
+        cursor.close()
+        conexion.close()
+
+def obtener_partido_id_db(id_partido):
+    conexion = get_connection()
+    try:
+        cursor = conexion.cursor(dictionary=True)
+        query = "SELECT * FROM partidos WHERE id = %s"
+        cursor.execute(query, (id_partido,))
+        return cursor.fetchone()
+    finally:
+        cursor.close()
+        conexion.close()
+
+
+def actualizar_partido_db(id_p, local, visitante, fecha, fase):
+    conexion = get_connection()
+    try:
+        cursor = conexion.cursor()
+        query = """
+                UPDATE partidos
+                SET equipo_local     = %s, \
+                    equipo_visitante = %s, \
+                    fecha            = %s, \
+                    fase             = %s
+                WHERE id = %s \
+                """
+        cursor.execute(query, (local, visitante, fecha, fase, id_p))
         conexion.commit()
         return cursor.rowcount > 0
     finally:
         cursor.close()
         conexion.close()
+
+
+def eliminar_partido_db(id_partido):
+    conexion = get_connection()
+    try:
+        cursor = conexion.cursor()
+        query = "DELETE FROM partidos WHERE id = %s"
+        cursor.execute(query, (id_partido,))
+        conexion.commit()
+        return cursor.rowcount > 0
+    finally:
+        cursor.close()
+        conexion.close()
+
+
+def actualizar_resultado_db(id_p, goles_l, goles_v):
+    conexion = get_connection()
+    try:
+        cursor = conexion.cursor()
+        query = "UPDATE partidos SET goles_local = %s, goles_visitante = %s WHERE id = %s"
+        cursor.execute(query, (goles_l, goles_v, id_p))
+        conexion.commit()
+        return cursor.rowcount > 0
+    finally:
+        cursor.close()
+        conexion.close()
+
+
+
+
