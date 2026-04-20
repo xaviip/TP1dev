@@ -187,12 +187,12 @@ Para interactuar con la API de manera visual sin necesidad de escribir código c
 | Integrantes         | Padrón |
 |---------------------|--------|
 | Patricio López      | 115353 | 
-| Abril Chiara Berlo  | 114287 |
+| Abril Chiara Berlot | 114287 |
 | Karla Torres        | 114908 |
 | Camila Delfino      | 113552 |
 | Sofía Belén Machuca | 113873 |
 
-### Participación nula o escasa
+### Participación nula/IA
 | Integrantes                 | Padrón |
 |-----------------------------|--------|
 | Jhordan Huancaruna Villegas | 115732 |
